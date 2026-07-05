@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Activation Functions Explorer</title>
+<style>
+  :root {
+    --bg: #1a1a1b;
+    --panel: #242426;
+    --panel-2: #2c2c2f;
+    --border: #3a3a3e;
+    --text: #f2f2f2;
+    --muted: #a8a8b0;
+    --accent: #7c6ff0;
+    --perceptron: #f0a35e;
+    --sigmoid: #7c6ff0;
+    --tanh: #4fc3a1;
+    --relu: #e46e8a;
+    --point: #ffd166;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+    padding: 24px 16px 48px;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; }
+  header h1 { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.01em; }
+  header p { color: var(--muted); margin-top: 4px; max-width: 64ch; }
+  .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0 16px; }
+  .tab {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.95rem;
+  }
+  .tab:hover { border-color: var(--accent); }
+  .tab.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  .layout { display: grid; grid-template-columns: 1fr 300px; gap: 16px; align-items: start; }
+  @media (max-width: 820px) { .layout { grid-template-columns: 1fr; } }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+  }
+  canvas { width: 100%; height: auto; display: block; border-radius: 8px; background: #202022; }
+  .controls { display: flex; align-items: center; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
+  .controls label { color: var(--muted); font-size: 0.9rem; }
+  input[type="range"] { flex: 1; min-width: 160px; accent-color: var(--accent); }
+  input[type="number"] {
+    width: 90px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 6px 8px;
+    font-size: 0.95rem;
+  }
+  .state h2, .info h2, .challenges h2 { font-size: 1rem; margin-bottom: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .state .row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border); font-variant-numeric: tabular-nums; }
+  .state .row:last-child { border-bottom: none; }
+  .state .row .val { font-weight: 700; }
+  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; }
+  .info { margin-top: 16px; }
+  .info .formula {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin: 8px 0 10px;
+    font-size: 0.95rem;
+  }
+  .info p { color: var(--muted); font-size: 0.95rem; }
+  .challenges { margin-top: 20px; }
+  .challenge-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+  .challenge { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+  .challenge p.q { font-weight: 600; margin-bottom: 10px; }
+  .challenge button {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+  }
+  .challenge button:hover { border-color: var(--accent); }
+  .challenge .a { margin-top: 10px; color: var(--point); font-weight: 700; display: none; font-variant-numeric: tabular-nums; }
+  .challenge .a.shown { display: block; }
+  .challenge .why { color: var(--muted); font-weight: 400; font-size: 0.9rem; }
+  footer { margin-top: 28px; color: var(--muted); font-size: 0.85rem; }
+  footer a { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Activation Functions Explorer</h1>
+    <p>Pick a function, drag the input, and watch what a single neuron outputs. An activation function decides how a neuron responds to its weighted input z—this is where non-linearity enters a neural network.</p>
+  </header>
+
+  <div class="tabs" id="tabs" role="tablist">
+    <button class="tab" data-fn="perceptron" role="tab">Perceptron</button>
+    <button class="tab active" data-fn="sigmoid" role="tab">Sigmoid</button>
+    <button class="tab" data-fn="tanh" role="tab">Tanh</button>
+    <button class="tab" data-fn="relu" role="tab">ReLU</button>
+    <button class="tab" data-fn="all" role="tab">All</button>
+  </div>
+
+  <div class="layout">
+    <div class="card">
+      <canvas id="plot" width="640" height="420" aria-label="Activation function plot"></canvas>
+      <div class="controls">
+        <label for="xSlider">x (input)</label>
+        <input type="range" id="xSlider" min="-10" max="10" step="0.1" value="0">
+        <input type="number" id="xNumber" min="-10" max="10" step="0.1" value="0" aria-label="x input value">
+      </div>
+    </div>
+
+    <div>
+      <div class="card state">
+        <h2>Current state</h2>
+        <div id="stateRows"></div>
+      </div>
+      <div class="card info" id="infoCard">
+        <h2>About this function</h2>
+        <div id="infoBody"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="challenges">
+    <h2>Challenge cards</h2>
+    <div class="challenge-grid">
+      <div class="challenge">
+        <p class="q">What does sigmoid(−2) output?</p>
+        <button data-answer="sigmoid-2">Show answer</button>
+        <p class="a" id="ans-sigmoid-2">≈ 0.12 <span class="why">— negative inputs get squashed towards 0, but never reach it.</span></p>
+      </div>
+      <div class="challenge">
+        <p class="q">What does tanh(−2) output?</p>
+        <button data-answer="tanh-2">Show answer</button>
+        <p class="a" id="ans-tanh-2">≈ −0.95 <span class="why">— tanh is zero-centred, so negative inputs give negative outputs.</span></p>
+      </div>
+      <div class="challenge">
+        <p class="q">What does ReLU(−2) output? And ReLU(3)?</p>
+        <button data-answer="relu">Show answer</button>
+        <p class="a" id="ans-relu">0 and 3 <span class="why">— ReLU passes positives through unchanged and silences everything below zero.</span></p>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Part of the <em>2 MA LMT :: Artificial Intelligence</em> course at AMU Poznań. Pairs with the activation-functions Colab and dashee87's visualisations.
+  </footer>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  const FNS = {
+    perceptron: {
+      name: 'Perceptron (step)',
+      colour: getCss('--perceptron'),
+      f: x => (x >= 0 ? 1 : 0),
+      yMin: -0.25, yMax: 1.25,
+      formula: 'f(x) = 1 if x ≥ 0, else 0',
+      blurb: 'The original 1958 neuron: it fires (1) or it does not (0), nothing in between. The hard jump makes it impossible to train with gradient descent—there is no slope to follow—which is why modern networks moved on.',
+    },
+    sigmoid: {
+      name: 'Sigmoid',
+      colour: getCss('--sigmoid'),
+      f: x => 1 / (1 + Math.exp(-x)),
+      yMin: -0.25, yMax: 1.25,
+      formula: 'f(x) = 1 / (1 + e^(−x))',
+      blurb: 'An S-shaped curve mapping any input to a probability-like value between 0 and 1. Smooth and trainable—but notice how the curve flattens for large |x|: that is saturation, where gradients shrink towards zero and learning stalls.',
+    },
+    tanh: {
+      name: 'Tanh',
+      colour: getCss('--tanh'),
+      f: x => Math.tanh(x),
+      yMin: -1.25, yMax: 1.25,
+      formula: 'f(x) = tanh(x)',
+      blurb: 'Like sigmoid, but zero-centred: outputs run from −1 to 1. That often makes optimisation easier than sigmoid, though it saturates at both ends just the same.',
+    },
+    relu: {
+      name: 'ReLU',
+      colour: getCss('--relu'),
+      f: x => Math.max(0, x),
+      yMin: -1.5, yMax: 10.5,
+      formula: 'f(x) = max(0, x)',
+      blurb: 'The workhorse of modern deep learning: zero for negative inputs, identity for positive ones. Cheap to compute and it does not saturate for positive x—though neurons stuck on the negative side can "die".',
+    },
+  };
+  const ORDER = ['perceptron', 'sigmoid', 'tanh', 'relu'];
+  const X_MIN = -10, X_MAX = 10;
+
+  let mode = 'sigmoid';
+  let x = 0;
+
+  const canvas = document.getElementById('plot');
+  const ctx = canvas.getContext('2d');
+  const slider = document.getElementById('xSlider');
+  const number = document.getElementById('xNumber');
+  const stateRows = document.getElementById('stateRows');
+  const infoBody = document.getElementById('infoBody');
+
+  function getCss(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
+  function setupCanvas() {
+    const dpr = window.devicePixelRatio || 1;
+    const cssWidth = canvas.clientWidth || 640;
+    const cssHeight = Math.round(cssWidth * 0.62);
+    canvas.width = cssWidth * dpr;
+    canvas.height = cssHeight * dpr;
+    canvas.style.height = cssHeight + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { w: cssWidth, h: cssHeight };
+  }
+
+  function yRange() {
+    if (mode === 'all') return { yMin: -1.5, yMax: 3 };
+    return { yMin: FNS[mode].yMin, yMax: FNS[mode].yMax };
+  }
+
+  function draw() {
+    const { w, h } = setupCanvas();
+    const { yMin, yMax } = yRange();
+    const pad = { l: 44, r: 14, t: 14, b: 30 };
+    const px = v => pad.l + ((v - X_MIN) / (X_MAX - X_MIN)) * (w - pad.l - pad.r);
+    const py = v => h - pad.b - ((v - yMin) / (yMax - yMin)) * (h - pad.t - pad.b);
+
+    ctx.clearRect(0, 0, w, h);
+
+    // grid
+    ctx.strokeStyle = '#333336';
+    ctx.lineWidth = 1;
+    ctx.font = '11px sans-serif';
+    ctx.fillStyle = '#8a8a92';
+    for (let gx = X_MIN; gx <= X_MAX; gx += 2) {
+      ctx.beginPath(); ctx.moveTo(px(gx), pad.t); ctx.lineTo(px(gx), h - pad.b); ctx.stroke();
+      ctx.fillText(String(gx), px(gx) - 6, h - pad.b + 16);
+    }
+    const yStep = (yMax - yMin) > 5 ? 2 : 0.5;
+    for (let gy = Math.ceil(yMin / yStep) * yStep; gy <= yMax; gy += yStep) {
+      ctx.beginPath(); ctx.moveTo(pad.l, py(gy)); ctx.lineTo(w - pad.r, py(gy)); ctx.stroke();
+      ctx.fillText(gy.toFixed(1).replace('.0', ''), 8, py(gy) + 4);
+    }
+
+    // axes
+    ctx.strokeStyle = '#55555c';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(px(0), pad.t); ctx.lineTo(px(0), h - pad.b); ctx.stroke();
+    if (yMin < 0 && yMax > 0) { ctx.beginPath(); ctx.moveTo(pad.l, py(0)); ctx.lineTo(w - pad.r, py(0)); ctx.stroke(); }
+
+    // curves
+    const fns = mode === 'all' ? ORDER : [mode];
+    for (const key of fns) {
+      const spec = FNS[key];
+      ctx.strokeStyle = spec.colour;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      let started = false;
+      for (let i = 0; i <= 400; i++) {
+        const vx = X_MIN + (i / 400) * (X_MAX - X_MIN);
+        let vy = spec.f(vx);
+        if (vy > yMax) vy = yMax;
+        if (vy < yMin) vy = yMin;
+        if (!started) { ctx.moveTo(px(vx), py(vy)); started = true; }
+        else ctx.lineTo(px(vx), py(vy));
+      }
+      ctx.stroke();
+
+      // current point
+      const out = spec.f(x);
+      const clamped = Math.min(Math.max(out, yMin), yMax);
+      ctx.fillStyle = getCss('--point');
+      ctx.beginPath();
+      ctx.arc(px(x), py(clamped), 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = spec.colour;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    // crosshair for single mode
+    if (mode !== 'all') {
+      const out = FNS[mode].f(x);
+      const clamped = Math.min(Math.max(out, yMin), yMax);
+      ctx.strokeStyle = 'rgba(255, 209, 102, 0.35)';
+      ctx.setLineDash([4, 4]);
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(px(x), h - pad.b); ctx.lineTo(px(x), py(clamped)); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(pad.l, py(clamped)); ctx.lineTo(px(x), py(clamped)); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  }
+
+  function renderState() {
+    const rows = [];
+    rows.push(row('x (input)', x.toFixed(2), null));
+    const keys = mode === 'all' ? ORDER : [mode];
+    for (const key of keys) {
+      rows.push(row(FNS[key].name, FNS[key].f(x).toFixed(4), FNS[key].colour));
+    }
+    stateRows.innerHTML = rows.join('');
+  }
+
+  function row(label, value, colour) {
+    const dot = colour ? '<span class="dot" style="background:' + colour + '"></span>' : '';
+    return '<div class="row"><span>' + dot + label + '</span><span class="val">' + value + '</span></div>';
+  }
+
+  function renderInfo() {
+    if (mode === 'all') {
+      infoBody.innerHTML = '<p>All four functions on one plot. Notice: the perceptron jumps, sigmoid and tanh flatten out (saturate), and ReLU keeps climbing. That difference in shape is the difference in how each neuron learns.</p>';
+      return;
+    }
+    const spec = FNS[mode];
+    infoBody.innerHTML = '<div class="formula">' + spec.formula + '</div><p>' + spec.blurb + '</p>';
+  }
+
+  function update() {
+    slider.value = String(x);
+    number.value = String(x);
+    draw();
+    renderState();
+    renderInfo();
+  }
+
+  document.getElementById('tabs').addEventListener('click', (e) => {
+    const btn = e.target.closest('.tab');
+    if (!btn) return;
+    mode = btn.dataset.fn;
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t === btn));
+    update();
+  });
+
+  slider.addEventListener('input', () => { x = parseFloat(slider.value); update(); });
+  number.addEventListener('input', () => {
+    const v = parseFloat(number.value);
+    if (!Number.isNaN(v)) { x = Math.min(Math.max(v, X_MIN), X_MAX); draw(); renderState(); slider.value = String(x); }
+  });
+
+  document.querySelectorAll('.challenge button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const ans = document.getElementById('ans-' + btn.dataset.answer);
+      const shown = ans.classList.toggle('shown');
+      btn.textContent = shown ? 'Hide answer' : 'Show answer';
+    });
+  });
+
+  window.addEventListener('resize', draw);
+  update();
+})();
+</script>
+</body>
+</html>
