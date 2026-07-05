@@ -79,25 +79,6 @@
     font-size: 0.95rem;
   }
   .info p { color: var(--muted); font-size: 0.95rem; }
-  .challenges { margin-top: 20px; }
-  .challenge-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
-  .challenge { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
-  .challenge p.q { font-weight: 600; margin-bottom: 10px; }
-  .challenge button {
-    background: var(--panel-2);
-    border: 1px solid var(--border);
-    color: var(--text);
-    padding: 6px 12px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 0.9rem;
-  }
-  .challenge button:hover { border-color: var(--accent); }
-  .challenge .a { margin-top: 10px; color: var(--point); font-weight: 700; display: none; font-variant-numeric: tabular-nums; }
-  .challenge .a.shown { display: block; }
-  .challenge .why { color: var(--muted); font-weight: 400; font-size: 0.9rem; }
-  footer { margin-top: 28px; color: var(--muted); font-size: 0.85rem; }
-  footer a { color: var(--accent); }
 </style>
 </head>
 <body>
@@ -137,30 +118,6 @@
     </div>
   </div>
 
-  <div class="challenges">
-    <h2>Challenge cards</h2>
-    <div class="challenge-grid">
-      <div class="challenge">
-        <p class="q">What does sigmoid(−2) output?</p>
-        <button data-answer="sigmoid-2">Show answer</button>
-        <p class="a" id="ans-sigmoid-2">≈ 0.12 <span class="why">— negative inputs get squashed towards 0, but never reach it.</span></p>
-      </div>
-      <div class="challenge">
-        <p class="q">What does tanh(−2) output?</p>
-        <button data-answer="tanh-2">Show answer</button>
-        <p class="a" id="ans-tanh-2">≈ −0.95 <span class="why">— tanh is zero-centred, so negative inputs give negative outputs.</span></p>
-      </div>
-      <div class="challenge">
-        <p class="q">What does ReLU(−2) output? And ReLU(3)?</p>
-        <button data-answer="relu">Show answer</button>
-        <p class="a" id="ans-relu">0 and 3 <span class="why">— ReLU passes positives through unchanged and silences everything below zero.</span></p>
-      </div>
-    </div>
-  </div>
-
-  <footer>
-    Part of the <em>2 MA LMT :: Artificial Intelligence</em> course at AMU Poznań. Pairs with the activation-functions Colab and dashee87's visualisations.
-  </footer>
 </div>
 
 <script>
@@ -351,14 +308,6 @@
   number.addEventListener('input', () => {
     const v = parseFloat(number.value);
     if (!Number.isNaN(v)) { x = Math.min(Math.max(v, X_MIN), X_MAX); draw(); renderState(); slider.value = String(x); }
-  });
-
-  document.querySelectorAll('.challenge button').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const ans = document.getElementById('ans-' + btn.dataset.answer);
-      const shown = ans.classList.toggle('shown');
-      btn.textContent = shown ? 'Hide answer' : 'Show answer';
-    });
   });
 
   window.addEventListener('resize', draw);
